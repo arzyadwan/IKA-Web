@@ -1,0 +1,136 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// --- ENUMS ---
+enum Role {
+  super_admin
+  region_admin
+  member
+}
+
+enum VerificationStatus {
+  unverified
+  pending
+  verified
+}
+
+enum MutationStatus {
+  requested
+  approved
+  rejected
+}
+
+// --- MODELS ---
+
+// prisma/schema.prisma
+
+model Region {
+  id          Int       @id @default(autoincrement())
+  name        String
+  slug        String    @unique
+  logoUrl     String?
+  
+  profiles    Profile[] @relation("CurrentRegion")
+  
+  mutationsFrom RegionMutation[] @relation("FromRegion")
+  mutationsTo   RegionMutation[] @relation("ToRegion")
+
+  // --- TAMBAHKAN DUA BARIS INI ---
+  activities  Activity[]   // Relasi ke tabel Berita/Kegiatan
+  orgMembers  OrgMember[]  // Relasi ke tabel Pengurus Organisasi
+
+  createdAt   DateTime  @default(now())
+}
+
+model User {
+  id                 Int       @id @default(autoincrement())
+  email              String    @unique
+  passwordHash       String    
+  role               Role      @default(member)
+  verificationStatus VerificationStatus @default(unverified)
+  
+  profile            Profile?
+  mutations          RegionMutation[]
+  
+  // --- TAMBAHKAN BARIS INI ---
+  activities         Activity[]
+  // ---------------------------
+  
+  createdAt          DateTime  @default(now())
+}
+
+model Profile {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  user            User     @relation(fields: [userId], references: [id])
+  
+  currentRegionId Int
+  region          Region   @relation("CurrentRegion", fields: [currentRegionId], references: [id])
+
+  fullName        String
+  graduationYear  Int
+  santriId        String?  // Nullable
+  phoneNumber     String   @unique
+  profession      String?
+  bloodType       String?  // A, B, AB, O
+  
+  // Alamat
+  address         String?  @db.Text
+
+  updatedAt       DateTime @updatedAt
+}
+
+model RegionMutation {
+  id           Int            @id @default(autoincrement())
+  userId       Int
+  user         User           @relation(fields: [userId], references: [id])
+  
+  fromRegionId Int
+  fromRegion   Region         @relation("FromRegion", fields: [fromRegionId], references: [id])
+  
+  toRegionId   Int
+  toRegion     Region         @relation("ToRegion", fields: [toRegionId], references: [id])
+  
+  status       MutationStatus @default(requested)
+  reason       String?        @db.Text
+  
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Activity {
+  id        Int      @id @default(autoincrement())
+  title     String
+  slug      String   @unique
+  excerpt   String?  @db.Text // Ringkasan pendek
+  content   String   @db.Text // Isi berita lengkap
+  imageUrl  String?  // Link gambar (bisa dari url luar dulu)
+  
+  regionId  Int
+  region    Region   @relation(fields: [regionId], references: [id])
+  
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model OrgMember {
+  id        Int     @id @default(autoincrement())
+  name      String  // Nama Pengurus
+  position  String  // Jabatan (Ketua, Sekretaris, Bendahara)
+  order     Int     @default(100) // Urutan tampilan (1 = Paling atas)
+  imageUrl  String? // Foto pengurus
+  
+  regionId  Int
+  region    Region  @relation(fields: [regionId], references: [id])
+}
