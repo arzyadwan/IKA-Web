@@ -11,6 +11,7 @@ datasource db {
 }
 
 // --- ENUMS ---
+
 enum Role {
   super_admin
   region_admin
@@ -29,42 +30,43 @@ enum MutationStatus {
   rejected
 }
 
-// --- MODELS ---
-
-// prisma/schema.prisma
+// --- CORE MODELS (WILAYAH & USER) ---
 
 model Region {
   id          Int       @id @default(autoincrement())
   name        String
   slug        String    @unique
   logoUrl     String?
-  
+  createdAt   DateTime  @default(now())
+
+  // Relasi Keanggotaan
   profiles    Profile[] @relation("CurrentRegion")
   
+  // Relasi Mutasi (Perpindahan)
   mutationsFrom RegionMutation[] @relation("FromRegion")
   mutationsTo   RegionMutation[] @relation("ToRegion")
 
-  // --- TAMBAHKAN DUA BARIS INI ---
-  activities  Activity[]   // Relasi ke tabel Berita/Kegiatan
-  orgMembers  OrgMember[]  // Relasi ke tabel Pengurus Organisasi
-
-  createdAt   DateTime  @default(now())
+  // Relasi Konten & Organisasi
+  orgMembers  OrgMember[]
+  articles    Article[] // Berita (Satu arah)
+  events      Event[]   @relation("EventHosts") // Kegiatan (Kolaborasi Many-to-Many)
 }
 
 model User {
   id                 Int       @id @default(autoincrement())
   email              String    @unique
-  passwordHash       String    
+  passwordHash       String
   role               Role      @default(member)
   verificationStatus VerificationStatus @default(unverified)
   
   profile            Profile?
-  mutations          RegionMutation[]
+  mutations          RegionMutation[] 
   
-  // --- TAMBAHKAN BARIS INI ---
-  activities         Activity[]
-  // ---------------------------
-  
+  // --- HUBUNGAN BARU (TAMBAHKAN INI) ---
+  articles           Article[]          // Relasi ke Berita yang ditulis
+  events             Event[]            // Relasi ke Event yang dibuat
+  participations     EventParticipant[] // Relasi ke Event yang diikuti
+
   createdAt          DateTime  @default(now())
 }
 
@@ -76,18 +78,21 @@ model Profile {
   currentRegionId Int
   region          Region   @relation("CurrentRegion", fields: [currentRegionId], references: [id])
 
+  // Data Biodata
   fullName        String
   graduationYear  Int
   santriId        String?  // Nullable
   phoneNumber     String   @unique
-  profession      String?
-  bloodType       String?  // A, B, AB, O
   
-  // Alamat
+  // Data Tambahan (Update Mandiri)
+  profession      String?
+  bloodType       String?
   address         String?  @db.Text
-
+  
   updatedAt       DateTime @updatedAt
 }
+
+// --- MUTATION SYSTEM (PERPINDAHAN) ---
 
 model RegionMutation {
   id           Int            @id @default(autoincrement())
@@ -107,13 +112,29 @@ model RegionMutation {
   updatedAt    DateTime       @updatedAt
 }
 
-model Activity {
+// --- ORGANIZATION STRUCTURE ---
+
+model OrgMember {
+  id        Int     @id @default(autoincrement())
+  name      String
+  position  String
+  order     Int     @default(100) // 1 = Ketua, dst.
+  imageUrl  String?
+  
+  regionId  Int
+  region    Region  @relation(fields: [regionId], references: [id])
+}
+
+// --- NEWS (ARTIKEL/BERITA) ---
+
+// 1. BERITA (Artikel satu arah)
+model Article {
   id        Int      @id @default(autoincrement())
   title     String
   slug      String   @unique
-  excerpt   String?  @db.Text // Ringkasan pendek
-  content   String   @db.Text // Isi berita lengkap
-  imageUrl  String?  // Link gambar (bisa dari url luar dulu)
+  excerpt   String   @db.Text
+  content   String   @db.Text
+  imageUrl  String?
   
   regionId  Int
   region    Region   @relation(fields: [regionId], references: [id])
@@ -122,15 +143,41 @@ model Activity {
   author    User     @relation(fields: [authorId], references: [id])
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model OrgMember {
-  id        Int     @id @default(autoincrement())
-  name      String  // Nama Pengurus
-  position  String  // Jabatan (Ketua, Sekretaris, Bendahara)
-  order     Int     @default(100) // Urutan tampilan (1 = Paling atas)
-  imageUrl  String? // Foto pengurus
+// 2. KEGIATAN (Agenda Kolaboratif)
+model Event {
+  id          Int       @id @default(autoincrement())
+  title       String
+  slug        String    @unique
+  description String    @db.Text
+  location    String    // Online / Offline location
+  eventDate   DateTime  // Waktu pelaksanaan
+  imageUrl    String?
+
+  // Many-to-Many: Satu event bisa diselenggarakan BANYAK region
+  regions     Region[]  @relation("EventHosts")
+
+  // Many-to-Many: Satu event punya BANYAK peserta
+  participants EventParticipant[]
+
+  authorId    Int
+  author      User      @relation(fields: [authorId], references: [id])
+
+  createdAt   DateTime @default(now())
+}
+
+// 3. PESERTA EVENT (Pivot Table)
+model EventParticipant {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  event     Event    @relation(fields: [eventId], references: [id])
   
-  regionId  Int
-  region    Region  @relation(fields: [regionId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  
+  joinedAt  DateTime @default(now())
+
+  @@unique([eventId, userId]) // Mencegah double join
 }

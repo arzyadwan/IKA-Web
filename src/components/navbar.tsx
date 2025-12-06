@@ -18,10 +18,14 @@ export async function Navbar() {
             <Link href="/" className="hover:text-black">
               Beranda
             </Link>
-            <Link href="/kegiatan" className="hover:text-black">
-              Kabar & Kegiatan
+            <Link href="/berita" className="hover:text-black">
+              Berita
             </Link>{" "}
-            {/* <-- Tambah ini */}
+            {/* <-- Baru */}
+            <Link href="/agenda" className="hover:text-black">
+              Agenda
+            </Link>{" "}
+            {/* <-- Baru (dulunya /kegiatan) */}
             <Link href="/search" className="hover:text-black">
               Cari Alumni
             </Link>
