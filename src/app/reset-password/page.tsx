@@ -1,6 +1,9 @@
 // src/app/reset-password/page.tsx
 'use client'
 
+// --- BARIS SAKTI (Memaksa halaman ini dirender di server tiap request, bukan statis) ---
+export const dynamic = "force-dynamic"; 
+
 import { useActionState, Suspense } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,20 +13,19 @@ import { useSearchParams } from 'next/navigation'
 import Link from "next/link"
 import { Loader2 } from "lucide-react"
 
-// 1. Kita pisahkan logika Form ke komponen sendiri (Bukan default export)
-function ResetPasswordForm() {
+// 1. Logic Form
+function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
   
   const [state, action, isPending] = useActionState(performReset, null)
 
-  // Jika token tidak ada di URL
   if (!token) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
         <Card className="w-full max-w-md border-red-200 bg-red-50">
-          <CardContent className="pt-6 text-center text-red-600">
-            Error: Token reset password tidak ditemukan atau url tidak valid.
+          <CardContent className="pt-6 text-center text-red-600 font-medium">
+            Error: Token reset password tidak ditemukan.
           </CardContent>
         </Card>
       </div>
@@ -53,22 +55,12 @@ function ResetPasswordForm() {
                   {state.message}
                 </div>
               )}
-
-              {/* Token dikirim sembunyi-sembunyi */}
               <input type="hidden" name="token" value={token} />
-
               <div className="space-y-1">
                 <label className="font-bold text-sm text-slate-700">Password Baru</label>
-                <Input 
-                  name="password" 
-                  type="password" 
-                  placeholder="Minimal 6 karakter" 
-                  required 
-                  className="h-11"
-                />
+                <Input name="password" type="password" placeholder="Minimal 6 karakter" required className="h-11" />
               </div>
-
-              <Button type="submit" className="w-full h-11 text-base" disabled={isPending}>
+              <Button type="submit" className="w-full h-11 text-base font-bold shadow-sm" disabled={isPending}>
                 {isPending ? "Menyimpan..." : "Simpan Password"}
               </Button>
             </form>
@@ -79,16 +71,15 @@ function ResetPasswordForm() {
   )
 }
 
-// 2. Default Export hanyalah "Wrapper" (Bungkus) dengan Suspense
+// 2. Wrapper Suspense
 export default function ResetPasswordPage() {
   return (
-    // Suspense akan menampilkan fallback saat URL parameter sedang dibaca
     <Suspense fallback={
       <div className="flex h-screen w-full items-center justify-center bg-slate-50">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     }>
-      <ResetPasswordForm />
+      <ResetPasswordContent />
     </Suspense>
   )
 }
