@@ -1,4 +1,4 @@
-// src/app/kegiatan/page.tsx
+// src/app/agenda/page.tsx
 import prisma from "@/lib/prisma"
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
@@ -7,12 +7,11 @@ import { getSession } from "@/lib/session"
 
 export default async function AgendaListPage() {
   const session = await getSession()
-  const isAdmin = session?.role === 'region_admin' || session?.role === 'super_admin'
+  const isAdmin = ['region_admin', 'super_admin'].includes(session?.role || '')
 
-  // Ambil data dari tabel EVENT (Bukan Activity lagi)
   const events = await prisma.event.findMany({
-    orderBy: { eventDate: 'asc' }, // Urutkan berdasarkan tanggal acara
-    include: { regions: true }     // Ambil info region penyelenggara
+    orderBy: { eventDate: 'asc' },
+    include: { regions: true }
   })
 
   return (
@@ -34,7 +33,6 @@ export default async function AgendaListPage() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {events.map((item) => (
-            // Arahkan ke /agenda/[slug] sesuai file yang kita buat sebelumnya
             <Link key={item.id} href={`/agenda/${item.slug}`}>
               <Card className="h-full hover:shadow-lg transition overflow-hidden">
                 <div className="h-48 bg-slate-800 w-full relative">
