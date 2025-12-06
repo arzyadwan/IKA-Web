@@ -1,13 +1,14 @@
 // src/app/login/login-form.tsx
-'use client'
+"use client";
 
-import { useActionState } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { loginUser } from "@/actions/auth"
+import Link from "next/link";
+import { useActionState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { loginUser } from "@/actions/auth";
 
 export function LoginForm() {
-  const [state, action, isPending] = useActionState(loginUser, null)
+  const [state, action, isPending] = useActionState(loginUser, null);
 
   return (
     <form action={action} className="space-y-4">
@@ -19,7 +20,12 @@ export function LoginForm() {
 
       <div className="space-y-1">
         <label className="text-sm font-medium">Email</label>
-        <Input name="email" type="email" placeholder="nama@email.com" required />
+        <Input
+          name="email"
+          type="email"
+          placeholder="nama@email.com"
+          required
+        />
         {state?.errors?.email && (
           <p className="text-xs text-red-500">{state.errors.email[0]}</p>
         )}
@@ -33,9 +39,21 @@ export function LoginForm() {
         )}
       </div>
 
-      <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800" disabled={isPending}>
+      <Button
+        type="submit"
+        className="w-full bg-slate-900 hover:bg-slate-800"
+        disabled={isPending}
+      >
         {isPending ? "Sedang Masuk..." : "Masuk"}
       </Button>
+      <div className="text-center mt-2">
+        <Link
+          href="/forgot-password"
+          className="text-xs text-slate-500 hover:text-black"
+        >
+          Lupa password?
+        </Link>
+      </div>
     </form>
-  )
+  );
 }

@@ -43,3 +43,23 @@ export async function processMutation(mutationId: number, decision: 'approved' |
     return { message: 'Gagal memproses data.' }
   }
 }
+
+export async function verifyUser(targetUserId: number) {
+  const session = await getSession()
+  // Hanya Admin yang boleh
+  if (!session || !['region_admin', 'super_admin'].includes(session.role)) {
+    return { message: 'Akses ditolak.' }
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: targetUserId },
+      data: { verificationStatus: 'verified' }
+    })
+    
+    revalidatePath('/admin/users') // Kita akan buat halaman ini sebentar lagi
+    return { message: 'User berhasil diverifikasi.' }
+  } catch (error) {
+    return { message: 'Gagal memverifikasi user.' }
+  }
+}
