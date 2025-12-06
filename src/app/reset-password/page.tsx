@@ -10,20 +10,20 @@ import { useSearchParams } from 'next/navigation'
 import Link from "next/link"
 import { Loader2 } from "lucide-react"
 
-// 1. Kita pisahkan logika Form ke komponen sendiri (Bukan default export)
-function ResetPasswordForm() {
+// 1. PISAHKAN LOGIKA FORM KE KOMPONEN SENDIRI
+function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
   
   const [state, action, isPending] = useActionState(performReset, null)
 
-  // Jika token tidak ada di URL
+  // Validasi jika token tidak ada
   if (!token) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
         <Card className="w-full max-w-md border-red-200 bg-red-50">
-          <CardContent className="pt-6 text-center text-red-600">
-            Error: Token reset password tidak ditemukan atau url tidak valid.
+          <CardContent className="pt-6 text-center text-red-600 font-medium">
+            Error: Token reset password tidak ditemukan atau URL tidak valid.
           </CardContent>
         </Card>
       </div>
@@ -54,7 +54,7 @@ function ResetPasswordForm() {
                 </div>
               )}
 
-              {/* Token dikirim sembunyi-sembunyi */}
+              {/* Token dikirim secara tersembunyi */}
               <input type="hidden" name="token" value={token} />
 
               <div className="space-y-1">
@@ -68,7 +68,7 @@ function ResetPasswordForm() {
                 />
               </div>
 
-              <Button type="submit" className="w-full h-11 text-base" disabled={isPending}>
+              <Button type="submit" className="w-full h-11 text-base font-bold shadow-sm" disabled={isPending}>
                 {isPending ? "Menyimpan..." : "Simpan Password"}
               </Button>
             </form>
@@ -79,16 +79,19 @@ function ResetPasswordForm() {
   )
 }
 
-// 2. Default Export hanyalah "Wrapper" (Bungkus) dengan Suspense
+// 2. EXPORT DEFAULT HANYA SEBAGAI WRAPPER (BUNGKUSAN)
 export default function ResetPasswordPage() {
   return (
-    // Suspense akan menampilkan fallback saat URL parameter sedang dibaca
+    // Suspense wajib ada untuk membungkus komponen yang pakai useSearchParams
     <Suspense fallback={
       <div className="flex h-screen w-full items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-slate-500 text-sm">Memuat...</p>
+        </div>
       </div>
     }>
-      <ResetPasswordForm />
+      <ResetPasswordContent />
     </Suspense>
   )
 }
