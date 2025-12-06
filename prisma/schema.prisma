@@ -37,25 +37,31 @@ model Region {
   name        String
   slug        String    @unique
   logoUrl     String?
-  createdAt   DateTime  @default(now())
-
-  // Relasi Keanggotaan
+  
+  // Relasi User
   profiles    Profile[] @relation("CurrentRegion")
   
-  // Relasi Mutasi (Perpindahan)
+  // Relasi Mutasi
   mutationsFrom RegionMutation[] @relation("FromRegion")
   mutationsTo   RegionMutation[] @relation("ToRegion")
 
-  // Relasi Konten & Organisasi
+  // Relasi Konten
+  articles    Article[]
+  events      Event[]      @relation("EventHosts")
   orgMembers  OrgMember[]
-  articles    Article[] // Berita (Satu arah)
-  events      Event[]   @relation("EventHosts") // Kegiatan (Kolaborasi Many-to-Many)
+
+  // --- TAMBAHKAN BARIS INI ---
+  galleryAlbums GalleryAlbum[] 
+
+  createdAt   DateTime  @default(now())
 }
 
 model User {
   id                 Int       @id @default(autoincrement())
   email              String    @unique
   passwordHash       String
+  resetToken         String?   @unique  // Kode unik reset
+  resetTokenExpiry   DateTime? // Batas waktu (misal: berlaku 1 jam)
   role               Role      @default(member)
   verificationStatus VerificationStatus @default(unverified)
   
@@ -180,4 +186,30 @@ model EventParticipant {
   joinedAt  DateTime @default(now())
 
   @@unique([eventId, userId]) // Mencegah double join
+}
+
+// 4. GALERI FOTO (Dokumentasi)
+model GalleryAlbum {
+  id        Int      @id @default(autoincrement())
+  title     String
+  slug      String   @unique
+  description String?
+  eventDate DateTime // Kapan foto ini diambil
+  
+  regionId  Int
+  region    Region   @relation(fields: [regionId], references: [id])
+  
+  images    GalleryImage[] // Satu album punya banyak foto
+
+  createdAt DateTime @default(now())
+}
+
+model GalleryImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  
+  albumId   Int
+  album     GalleryAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
 }

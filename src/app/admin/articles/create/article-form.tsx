@@ -1,16 +1,53 @@
 // src/app/admin/articles/create/article-form.tsx
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { createArticle } from "@/actions/article"
+import { supabase } from "@/lib/supabase-client"
 
-// Tipe data sederhana untuk region
 type RegionSimple = { id: number; name: string }
 
 export function ArticleForm({ regions }: { regions: RegionSimple[] }) {
   const [state, action, isPending] = useActionState(createArticle, null)
+  
+  // State untuk menangani upload
+  const [uploading, setUploading] = useState(false)
+  const [imageUrl, setImageUrl] = useState("") 
+
+  // Fungsi Upload ke Supabase
+  async function handleFileUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    if (!event.target.files || event.target.files.length === 0) return
+
+    const file = event.target.files[0]
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${Date.now()}.${fileExt}`
+    const filePath = `articles/${fileName}`
+
+    setUploading(true)
+
+    try {
+      // 1. Upload File
+      const { error: uploadError } = await supabase.storage
+        .from('uploads') // Nama bucket yg tadi dibuat
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      // 2. Ambil URL Publik
+      const { data } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(filePath)
+
+      setImageUrl(data.publicUrl) // Simpan URL ke state untuk dikirim ke DB
+    } catch (error) {
+      alert('Gagal upload gambar!')
+      console.error(error)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
     <form action={action} className="space-y-6">
@@ -23,7 +60,6 @@ export function ArticleForm({ regions }: { regions: RegionSimple[] }) {
       <div className="space-y-1">
         <label className="font-bold text-sm">Judul Artikel</label>
         <Input name="title" placeholder="Contoh: Profil Alumni Sukses - Budi Hartono" required />
-        {state?.errors?.title && <p className="text-xs text-red-500">{state.errors.title[0]}</p>}
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -37,9 +73,26 @@ export function ArticleForm({ regions }: { regions: RegionSimple[] }) {
           </select>
         </div>
         
+        {/* INPUT FILE UPLOAD */}
         <div className="space-y-1">
-          <label className="font-bold text-sm">Gambar Utama (URL)</label>
-          <Input name="imageUrl" placeholder="https://..." />
+          <label className="font-bold text-sm">Gambar Utama</label>
+          <Input 
+            type="file" 
+            accept="image/*" 
+            onChange={handleFileUpload} 
+            disabled={uploading}
+          />
+          {uploading && <p className="text-xs text-blue-500">Sedang mengupload...</p>}
+          
+          {/* Trik: Input tersembunyi untuk mengirim URL ke Server Action */}
+          <input type="hidden" name="imageUrl" value={imageUrl} />
+          
+          {/* Preview Gambar */}
+          {imageUrl && (
+            <div className="mt-2 w-32 h-20 bg-slate-100 rounded overflow-hidden border">
+              <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -51,10 +104,9 @@ export function ArticleForm({ regions }: { regions: RegionSimple[] }) {
           placeholder="Tulis artikel lengkap di sini..."
           required 
         />
-        {state?.errors?.content && <p className="text-xs text-red-500">{state.errors.content[0]}</p>}
       </div>
 
-      <Button type="submit" className="w-full" disabled={isPending}>
+      <Button type="submit" className="w-full" disabled={isPending || uploading}>
         {isPending ? "Menerbitkan..." : "Terbitkan Artikel"}
       </Button>
     </form>
